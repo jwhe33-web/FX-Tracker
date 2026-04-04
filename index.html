@@ -407,7 +407,7 @@ td.rate-cell:hover .rate-label { display: block; }
 
       await Promise.all(BASE.map(async base => {
         const targets = ROWS.filter(r => r !== base).join(",");
-        const url = `https://api.frankfurter.dev/v1/${date}?from=${base}&to=${targets}`;
+        const url = `https://api.frankfurter.dev/v1/${date}?from=${base}&symbols=${targets}`;
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`Frankfurter returned HTTP ${resp.status}`);
         const data = await resp.json();
