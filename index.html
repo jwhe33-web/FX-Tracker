@@ -187,14 +187,24 @@ function showErr(msg) {
 // 'latest' also works for today
 async function fetchForBase(base, date) {
   const b = base.toLowerCase();
-  // Try the specific date first, fall back to 'latest'
   const dateTag = (date === todayStr()) ? "latest" : date;
-  const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${dateTag}/v1/currencies/${b}.json`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${base} on ${dateTag}`);
-  const data = await resp.json();
-  // data.date = actual date, data[b] = { usd: 1.29, eur: 1.17, ... }
-  return { date: data.date, rates: data[b] };
+
+  // Two URLs for the same data — jsDelivr CDN (fast) and raw GitHub (full history)
+  const urls = [
+    `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${dateTag}/v1/currencies/${b}.json`,
+    `https://raw.githubusercontent.com/fawazahmed0/exchange-api/main/${dateTag}/v1/currencies/${b}.json`,
+  ];
+
+  let lastErr = null;
+  for (const url of urls) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) { lastErr = `HTTP ${resp.status}`; continue; }
+      const data = await resp.json();
+      return { date: data.date, rates: data[b] };
+    } catch(e) { lastErr = e.message; }
+  }
+  throw new Error(`Could not fetch ${base} for ${dateTag}: ${lastErr}`);
 }
 
 async function load(date) {
