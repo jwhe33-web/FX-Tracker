@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FX Matrix · jwhe33</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+```
+:root {
+  --gold: #ffd250;
+  --gold-dim: #a07820;
+  --bg: #080810;
+  --surface: #0f0f1a;
+  --border: #1a1a2e;
+  --text: #ddd8c8;
+  --muted: #555566;
+  --red: #ff6060;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh;
+  padding: 48px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,210,80,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,210,80,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* gold glow top */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px; left: 50%;
+  transform: translateX(-50%);
+  width: 900px; height: 500px;
+  background: radial-gradient(ellipse at center, rgba(255,210,80,0.07) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 860px;
+}
+
+/* ── Header ── */
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  color: var(--gold);
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(28px, 6vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  background: linear-gradient(135deg, #e8e4d4 0%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  margin-bottom: 36px;
+}
+
+.subtitle a {
+  color: #3a6aaa;
+  text-decoration: none;
+}
+
+/* ── Controls ── */
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+input[type="date"] {
+  flex: 1;
+  min-width: 160px;
+  background: var(--surface);
+  border: 1px solid #2a2a40;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: 'DM Mono', monospace;
+  padding: 13px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input[type="date"]:focus { border-color: var(--gold); }
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5) sepia(1) saturate(3) hue-rotate(10deg);
+  cursor: pointer;
+}
+
+button {
+  font-family: 'DM Mono', monospace;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 13px 24px;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+#btn-pull {
+  background: linear-gradient(135deg, var(--gold), #ffb800);
+  color: #080810;
+}
+#btn-pull:disabled {
+  background: #2a2a18;
+  color: #555;
+  cursor: not-allowed;
+}
+
+#btn-yesterday {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid #2a2a40;
+}
+#btn-yesterday:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── Status messages ── */
+.notice {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding: 10px 0;
+}
+.notice.warn { color: var(--gold-dim); }
+.notice.err  { color: var(--red); background: #180808; border: 1px solid #4a1010; border-radius: 8px; padding: 12px 16px; margin-top: 8px; }
+
+.spinner-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 16px 0;
+}
+.spinner {
+  width: 17px; height: 17px;
+  border: 2px solid #222;
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Matrix header ── */
+.matrix-header {
+  margin-top: 28px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.matrix-header .resolved { color: var(--gold); }
+.matrix-header .nearest  { color: var(--gold-dim); }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+thead th {
+  padding: 12px 14px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+thead th:first-child {
+  text-align: left;
+  width: 130px;
+  font-size: 10px;
+  color: #333344;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.col-flag  { font-size: 22px; display: block; margin-bottom: 4px; }
+.col-code  { font-size: 14px; color: var(--gold); font-weight: 700; letter-spacing: 0.08em; }
+.col-name  { font-size: 10px; color: #3a3a50; margin-top: 3px; }
+
+tbody tr { transition: background 0.12s; }
+tbody tr:nth-child(odd)  { background: rgba(255,255,255,0.008); }
+tbody tr:nth-child(even) { background: transparent; }
+tbody tr:hover { background: rgba(255,210,80,0.035) !important; }
+
+tbody td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #0d0d1a;
+}
+
+.row-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.row-flag { font-size: 17px; }
+.row-code { font-size: 13px; font-weight: 600; }
+.row-name { font-size: 10px; color: #3a3a50; margin-top: 1px; }
+
+td.rate-cell {
+  text-align: center;
+  border-left: 1px solid #0d0d1a;
+  transition: background 0.12s;
+  position: relative;
+}
+td.rate-cell:hover { background: rgba(255,210,80,0.10) !important; }
+td.rate-cell.diag  { background: rgba(255,210,80,0.08); }
+
+.rate-val {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ccc8b8;
+  letter-spacing: 0.03em;
+  transition: color 0.12s;
+}
+td.rate-cell:hover .rate-val { color: var(--gold); }
+td.rate-cell.diag  .rate-val { color: var(--gold); font-weight: 700; }
+
+.rate-label {
+  font-size: 10px;
+  color: #555566;
+  margin-top: 3px;
+  display: none;
+}
+td.rate-cell:hover .rate-label { display: block; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: 18px;
+  font-size: 11px;
+  color: #2a2a3a;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  letter-spacing: 0.05em;
+}
+.footer span { color: #3a3a50; }
+
+/* ── Animations ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-up { animation: fadeUp 0.35s ease forwards; }
+
+@media (max-width: 480px) {
+  body { padding: 32px 14px 60px; }
+  thead th:first-child { width: 100px; }
+  tbody td { padding: 11px 10px; }
+  thead th { padding: 10px 10px; }
+}
+```
+
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">FX / Cross Rates</p>
+  <h1>Exchange Rate Matrix</h1>
+  <p class="subtitle">
+    ECB reference rates via <a href="https://www.frankfurter.app" target="_blank">frankfurter.app</a>
+    · accurate since 1999
+  </p>
+
+  <div class="controls">
+    <input type="date" id="date-input" />
+    <button id="btn-pull">Pull Rates</button>
+    <button id="btn-yesterday">Yesterday</button>
+  </div>
+
+  <div id="weekend-warn" class="notice warn" style="display:none">
+    ⚠ Weekend selected — ECB publishes on weekdays only. Will return nearest prior trading day.
+  </div>
+
+  <div id="spinner-row" class="spinner-row" style="display:none">
+    <div class="spinner"></div>
+    <span id="spinner-text">Fetching from Frankfurter API…</span>
+  </div>
+
+  <div id="error-box" class="notice err" style="display:none"></div>
+
+  <div id="matrix-wrap" style="display:none">
+    <div class="matrix-header" id="matrix-header"></div>
+    <div class="table-wrap">
+      <table id="matrix-table"></table>
+    </div>
+    <div class="footer">
+      Source: <span>ECB via api.frankfurter.app</span>
+      &nbsp;·&nbsp; Hover cell for pair label
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const BASE = ["GBP", "CHF", "EUR"];
+  const ROWS = ["USD", "DKK", "EUR", "CHF", "GBP"];
+  const FLAG = { GBP:"🇬🇧", CHF:"🇨🇭", EUR:"🇪🇺", USD:"🇺🇸", DKK:"🇩🇰" };
+  const NAME = { GBP:"Sterling", CHF:"Franc", EUR:"Euro", USD:"Dollar", DKK:"Krone" };
+
+  const $date    = document.getElementById("date-input");
+  const $pull    = document.getElementById("btn-pull");
+  const $yest    = document.getElementById("btn-yesterday");
+  const $warn    = document.getElementById("weekend-warn");
+  const $spinner = document.getElementById("spinner-row");
+  const $error   = document.getElementById("error-box");
+  const $wrap    = document.getElementById("matrix-wrap");
+  const $header  = document.getElementById("matrix-header");
+  const $table   = document.getElementById("matrix-table");
+
+  function yesterday() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split("T")[0];
+  }
+
+  function isWeekend(str) {
+    const d = new Date(str).getUTCDay();
+    return d === 0 || d === 6;
+  }
+
+  // Initialise date input
+  $date.max = yesterday();
+  $date.min = "1999-01-04";
+  $date.value = yesterday();
+
+  $date.addEventListener("change", () => {
+    $warn.style.display = isWeekend($date.value) ? "block" : "none";
+  });
+
+  $date.addEventListener("keydown", e => { if (e.key === "Enter") load($date.value); });
+  $pull.addEventListener("click", () => load($date.value));
+  $yest.addEventListener("click", () => { $date.value = yesterday(); load(yesterday()); });
+
+  function setLoading(on) {
+    $pull.disabled = on;
+    $yest.disabled = on;
+    $spinner.style.display = on ? "flex" : "none";
+  }
+
+  function showError(msg) {
+    $error.textContent = "⚠ " + msg;
+    $error.style.display = "block";
+    $wrap.style.display = "none";
+  }
+
+  async function load(date) {
+    if (!date) return;
+    setLoading(true);
+    $error.style.display = "none";
+    $wrap.style.display = "none";
+
+    try {
+      // Fetch each base currency from Frankfurter in parallel
+      const results = {};
+      let resolvedDate = date;
+
+      await Promise.all(BASE.map(async base => {
+        const targets = ROWS.filter(r => r !== base).join(",");
+        const url = `https://api.frankfurter.app/${date}?from=${base}&to=${targets}`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Frankfurter returned HTTP ${resp.status}`);
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        results[base] = { ...data.rates, [base]: 1.0 };
+        resolvedDate = data.date;
+      }));
+
+      renderMatrix(results, resolvedDate, date);
+
+    } catch (e) {
+      showError(e.message || "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function renderMatrix(rates, resolvedDate, requestedDate) {
+    // Header
+    let hdr = `<span class="resolved">${resolvedDate}</span>`;
+    if (resolvedDate !== requestedDate) {
+      hdr += ` <span class="nearest">(nearest trading day to ${requestedDate})</span>`;
+    }
+    hdr += " &nbsp;·&nbsp; 1 unit of column → row currency";
+    $header.innerHTML = hdr;
+
+    // Build table
+    let html = "<thead><tr>";
+    html += `<th>↓ / →</th>`;
+    BASE.forEach(cur => {
+      html += `<th>
+        <span class="col-flag">${FLAG[cur]}</span>
+        <span class="col-code">${cur}</span>
+        <div class="col-name">${NAME[cur]}</div>
+      </th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    ROWS.forEach(rowCur => {
+      html += `<tr>
+        <td>
+          <div class="row-cell">
+            <span class="row-flag">${FLAG[rowCur]}</span>
+            <div>
+              <div class="row-code">${rowCur}</div>
+              <div class="row-name">${NAME[rowCur]}</div>
+            </div>
+          </div>
+        </td>`;
+
+      BASE.forEach(colCur => {
+        const rate = rates[colCur]?.[rowCur];
+        const diag = rowCur === colCur;
+        const fmt  = rate != null ? Number(rate).toFixed(4) : "—";
+        const label = (!diag && rate != null) ? `1 ${colCur} = ${fmt} ${rowCur}` : "";
+        html += `<td class="rate-cell${diag ? " diag" : ""}">
+          <div class="rate-val">${fmt}</div>
+          ${label ? `<div class="rate-label">${label}</div>` : ""}
+        </td>`;
+      });
+
+      html += "</tr>";
+    });
+
+    html += "</tbody>";
+    $table.innerHTML = html;
+
+    $wrap.style.display = "block";
+    $wrap.classList.remove("fade-up");
+    void $wrap.offsetWidth; // force reflow
+    $wrap.classList.add("fade-up");
+  }
+
+  // Load on startup
+  load(yesterday());
+</script>
+
+</body>
+</html>
