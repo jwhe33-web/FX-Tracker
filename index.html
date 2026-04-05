@@ -59,9 +59,7 @@ button {
 }
 #btn-pull { background: linear-gradient(135deg,#ffd250,#ffb800); color: #08080f; }
 #btn-pull:disabled { background: #252515; color: #555; cursor: not-allowed; }
-#btn-today {
-  background: transparent; color: #666; border: 1px solid #252535;
-}
+#btn-today { background: transparent; color: #666; border: 1px solid #252535; }
 #btn-today:hover:not(:disabled) { border-color: #ffd250; color: #ffd250; }
 
 .notice { font-size: 11px; padding: 10px 0; color: #a07820; }
@@ -148,9 +146,9 @@ td.rc:hover .rl { display: block; }
 
 <script>
 const BASE = ["GBP","CHF","EUR"];
-const ROWS = ["USD","DKK","EUR","CHF","GBP"];
-const FLAG = {GBP:"🇬🇧",CHF:"🇨🇭",EUR:"🇪🇺",USD:"🇺🇸",DKK:"🇩🇰"};
-const NAME = {GBP:"Sterling",CHF:"Franc",EUR:"Euro",USD:"Dollar",DKK:"Krone"};
+const ROWS = ["USD","DKK","EUR","CHF","GBP","BRL"];
+const FLAG = {GBP:"🇬🇧",CHF:"🇨🇭",EUR:"🇪🇺",USD:"🇺🇸",DKK:"🇩🇰",BRL:"🇧🇷"};
+const NAME = {GBP:"Sterling",CHF:"Franc",EUR:"Euro",USD:"Dollar",DKK:"Krone",BRL:"Real"};
 
 const $di  = document.getElementById("di");
 const $pull= document.getElementById("btn-pull");
@@ -182,19 +180,13 @@ function showErr(msg) {
   $eb.textContent="⚠ "+msg; $eb.style.display="block"; $mw.style.display="none";
 }
 
-// This API is hosted on GitHub + served via jsDelivr CDN
-// URL format: https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@{date}/v1/currencies/{base}.json
-// 'latest' also works for today
 async function fetchForBase(base, date) {
   const b = base.toLowerCase();
   const dateTag = (date === todayStr()) ? "latest" : date;
-
-  // Two URLs for the same data — jsDelivr CDN (fast) and raw GitHub (full history)
   const urls = [
     `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${dateTag}/v1/currencies/${b}.json`,
-    `https://raw.githubusercontent.com/fawazahmed0/exchange-api/main/${dateTag}/v1/currencies/${b}.json`,
+    `https://${dateTag}.currency-api.pages.dev/v1/currencies/${b}.json`,
   ];
-
   let lastErr = null;
   for (const url of urls) {
     try {
@@ -213,7 +205,6 @@ async function load(date) {
   $mw.style.display="none";
 
   try {
-    // Fetch all three base currencies in parallel
     const [gbp, chf, eur] = await Promise.all([
       fetchForBase("GBP", date),
       fetchForBase("CHF", date),
@@ -221,8 +212,6 @@ async function load(date) {
     ]);
 
     const resolvedDate = gbp.date;
-
-    // Build matrix — rates[col][row]
     const lookup = { GBP: gbp.rates, CHF: chf.rates, EUR: eur.rates };
     const matrix = {};
     for (const col of BASE) {
@@ -282,7 +271,6 @@ function renderMatrix(matrix, resolvedDate, requestedDate) {
   $mw.classList.add("fade");
 }
 
-// Load on startup
 load(todayStr());
 </script>
 
